@@ -1,7 +1,10 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/journal_provider.dart';
+import '../widgets/journal_feedback_dialog.dart';
 import '../../../app/theme/app_colors.dart';
 
 class JournalScreen extends ConsumerStatefulWidget {
@@ -106,7 +109,6 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
   }
 
   Future<void> _handleSave() async {
-    final messenger = ScaffoldMessenger.of(context);
     await ref.read(journalProvider.notifier).saveEntry(
       mood: mood,
       energy: energy,
@@ -115,22 +117,21 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
       notes: notesController.text,
     );
     
-    messenger.showSnackBar(
-      SnackBar(
-        backgroundColor: AppColors.secondary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.white),
-            SizedBox(width: 12),
-            Text('Journal entry saved successfully!', style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ),
+    if (!mounted) return;
+    
+    final parentNavigator = Navigator.of(context);
+    final parentContext = parentNavigator.context;
+    
+    parentNavigator.pop(); // Pop the Journal input screen/sheet
+    
+    JournalFeedbackDialog.show(
+      context: parentContext,
+      mood: mood,
+      energy: energy,
+      cravings: cravings,
+      sleep: sleep,
+      notes: notesController.text,
     );
-
-    if (mounted) Navigator.pop(context);
   }
 
   Widget _buildGradientSlider(String label, int value, int min, int max, Color color, ValueChanged<double> onChanged) {

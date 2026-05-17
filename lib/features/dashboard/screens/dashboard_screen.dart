@@ -8,6 +8,8 @@ import '../../progress/providers/weight_provider.dart';
 import '../widgets/fasting_progress_circle.dart';
 import '../../../app/theme/app_colors.dart';
 import '../services/motivation_service.dart';
+import '../../../data/models/weight_entry_model.dart';
+import '../widgets/weight_feedback_dialog.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -277,24 +279,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             onPressed: () {
               final weight = double.tryParse(controller.text);
               if (weight != null) {
+                // Get the weight history BEFORE adding the new weight to compare
+                final weightHistory = ref.read(weightProvider);
+                final WeightEntry? previousEntry = weightHistory.isNotEmpty ? weightHistory.first : null;
+
                 ref.read(weightProvider.notifier).addWeight(weight);
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    backgroundColor: AppColors.secondary,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    content: const Row(
-                      children: [
-                        Icon(Icons.check_circle, color: Colors.white),
-                        SizedBox(width: 12),
-                        Text('Weight recorded successfully!',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                );
+                Navigator.pop(context); // Close weight record dialog
+                
+                // Show our gorgeous premium feedback dialog from a separate clean widget file!
+                WeightFeedbackDialog.show(context, weight, previousEntry);
               }
             },
             child: const Text('SAVE'),
