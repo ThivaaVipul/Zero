@@ -37,6 +37,47 @@ class FastingSessionNotifier extends Notifier<FastingSession?> {
     ref.read(fastingHistoryVersionProvider.notifier).increment();
   }
 
+  Future<void> endFastingCustom(DateTime customEndTime) async {
+    final active = _repository.getActiveSession();
+    if (active != null) {
+      active.endTime = customEndTime;
+      active.completed = true;
+      await _repository.saveSession(active);
+      state = null;
+      ref.read(fastingHistoryVersionProvider.notifier).increment();
+    }
+  }
+
+  Future<void> updateActiveStartTime(DateTime newStartTime) async {
+    if (state != null) {
+      state!.startTime = newStartTime;
+      await _repository.saveSession(state!);
+      // Re-read active session to emit a new state and notify UI
+      state = _repository.getActiveSession();
+      ref.read(fastingHistoryVersionProvider.notifier).increment();
+    }
+  }
+
+  Future<void> updateSession(
+    FastingSession session, {
+    required DateTime startTime,
+    required DateTime endTime,
+    required int fastingHours,
+    required bool completed,
+  }) async {
+    session.startTime = startTime;
+    session.endTime = endTime;
+    session.fastingHours = fastingHours;
+    session.completed = completed;
+    await _repository.saveSession(session);
+
+    // If we modified the active session, sync in-memory state
+    if (state?.id == session.id) {
+      state = _repository.getActiveSession();
+    }
+    ref.read(fastingHistoryVersionProvider.notifier).increment();
+  }
+
   Future<void> deleteSession(FastingSession session) async {
     await _repository.deleteSession(session);
     ref.read(fastingHistoryVersionProvider.notifier).increment();
